@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- coding: utf-8 -*-
 
-package dns_dedup_main;
+package DnsDedupMain;
 
 use strict;
 use warnings;
@@ -10,12 +10,12 @@ use feature qw( say );
 use Getopt::Long qw(:config posix_default bundling no_ignore_case );
 use File::Basename qw ( basename );
 
-our $VERSION = "0.1";
-our $NAME    = "dns-dedup";
-our $DESC    = "deduplicate domain name lists";
+our $VERSION = q{0.1};
+our $NAME    = q{dns-dedup};
+our $DESC    = q{deduplicate domain name lists};
 
 my $prog_name   = basename($0);
-my $short_usage = "${prog_name} {-c <N>|-h|-o <FILE>|-U <ZTYPE>} [<FILE>...]";
+my $short_usage = qq{${prog_name} {-c <N>|-h|-o <FILE>|-U <ZTYPE>} [<FILE>...]};
 my $usage       = <<'EOF';
 ${NAME} (${VERSION}) - ${DESC}
 
@@ -50,21 +50,21 @@ sub write_domains_to_fh {
 
     # write output file
     if ( (not defined $outformat) || ($outformat eq $EMPTY) ) {
-        foreach (@domains) { say $outfh $_; }
+        foreach (@domains) { say {$outfh} $_ or die "!$\n"; }
 
         return 0;
 
-    } elsif ( $outformat eq "unbound" ) {
+    } elsif ( $outformat eq 'unbound' ) {
         my $zone_type;
 
         if ( (not defined $outformat_arg) or ($outformat_arg eq $EMPTY) ) {
-            $zone_type = "always_nxdomain";
+            $zone_type = 'always_nxdomain';
         } else {
             $zone_type = $outformat_arg;
         }
 
         foreach (@domains) {
-            printf $outfh "local-zone: \"%s.\" %s\n", $_, $zone_type
+            printf {$outfh} "local-zone: \"%s.\" %s\n", $_, $zone_type or die "!$\n";
         }
 
         return 0;
@@ -88,23 +88,23 @@ sub main {
 
     if (
         ! GetOptions (
-            "C|autocollapse=i"  => \$autocol_depth,
-            "h|help"            => \$want_help,
-            "o|outfile=s"       => \$outfile,
-            "U|unbound:s"       => sub {
-                $outformat = "unbound";
+            'C|autocollapse=i'  => \$autocol_depth,
+            'h|help'            => \$want_help,
+            'o|outfile=s'       => \$outfile,
+            'U|unbound:s'       => sub {
+                $outformat = 'unbound';
                 $outformat_arg = $_[1];
             }
         )
     ) {
-        say STDERR "Usage: ", $short_usage;
+        say {*STDERR} 'Usage: ', $short_usage or die "!$\n";
         return 1;  # FIXME EX_USAGE
     }
 
     # help => exit
     if ( $want_help ) {
         # newline at end supplied by $usage
-        print $usage;
+        print $usage or die "!$\n";
         return 0;
     }
 
@@ -113,9 +113,9 @@ sub main {
 
     if ( scalar @ARGV ) {
         foreach (@ARGV) {
-            open ( my $infh, "<", $_ ) or die "Failed to open input file: $!\n";
+            open my $infh, '<', $_ or die "Failed to open input file: $!\n";
             $tree->read_fh ( $infh );
-            close ( $infh ) or warn "Failed to close input file: $!\n";
+            close $infh or warn "Failed to close input file: $!\n";
         }
 
     } else {
@@ -128,9 +128,9 @@ sub main {
     if ( defined $outfile ) {
         my $outfh;
 
-        open ( $outfh, ">", $outfile ) or die "Failed to open outfile: $!\n";
+        open $outfh, '>', $outfile or die "Failed to open outfile: $!\n";
         $ret = write_domains_to_fh ( $outfh, \@domains, $outformat, $outformat_arg );
-        close ( $outfh ) or warn "Failed to close outfile: $!\n";
+        close $outfh or warn "Failed to close outfile: $!\n";
 
     } else {
         $ret = write_domains_to_fh ( *STDOUT, \@domains, $outformat, $outformat_arg );
@@ -142,7 +142,7 @@ sub main {
 }
 
 
-exit(main());
+exit main();
 
 
 
@@ -187,7 +187,7 @@ sub insert {
     my ( $self, $domain_name ) = @_;
 
     # lowercase -> split on "." -> ignore empty parts
-    my @key_path = grep { '/./' } ( split ( /\./xm, lc $domain_name ) );
+    my @key_path = grep { '/./' } ( split /[.]/xm, lc $domain_name );
 
     # auto-collapse if enabled
     if ( (defined $self->{_acd}) && ($self->{_acd} >= 0) ) {
@@ -252,7 +252,7 @@ sub get_child_node_name {
     my $name = $self->{_name};
 
     if ( (defined $name) && ($name ne q{}) && ($name ne q{.}) ) {
-        return join ( q{.}, ( $subdomain, $name ) );
+        return join q{.}, ( $subdomain, $name );
     } else {
         return $subdomain;
     }
@@ -307,7 +307,7 @@ sub collect {
 
     } else {
         # sort by top-level domain, then second-level domain a.s.o.
-        foreach my $key ( sort ( keys %{ $self->{_nodes} } ) ) {
+        foreach my $key ( sort keys %{ $self->{_nodes} } ) {
             $self->{_nodes}->{$key}->collect ( $dst_arr );
         }
     }
