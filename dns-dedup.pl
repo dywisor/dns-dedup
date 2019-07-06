@@ -76,7 +76,7 @@ sub main() {
     # create DNS tree, read input files
     my $tree = new DnsTree ( $autocol_depth );
 
-    if ( @ARGV ) {
+    if ( scalar @ARGV ) {
         foreach (@ARGV) {
             open ( my $infh, "<", $_ ) or die "Failed to open input file: $!";
             $tree->read_fh ( $infh );
