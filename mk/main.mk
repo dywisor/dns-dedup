@@ -16,6 +16,10 @@ DODIR    = $(INSTALL) -d -m $(DIRMODE)
 DOEXE    = $(INSTALL) -D -m $(EXEMODE)
 DOINS    = $(INSTALL) -D -m $(INSMODE)
 
+X_PERLCRITIC = perlcritic
+PERLCRITIC_OPTS  =
+PERLCRITIC_OPTS += --verbose 11
+
 all:
 
 install:
@@ -24,5 +28,8 @@ install:
 uninstall:
 	$(RMF) -- $(DESTDIR)$(BINDIR)/dns-dedup
 
+check:
+	$(X_PERLCRITIC) $(PERLCRITIC_OPTS) $(S)/dns-dedup.pl
 
-.PHONY: all install uninstall
+
+.PHONY: all install uninstall check
