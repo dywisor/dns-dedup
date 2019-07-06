@@ -40,6 +40,8 @@ Exit Codes:
   255                       error
 EOF
 
+our $EMPTY = q{};
+
 
 # write_domains_to_fh ( outfh, domains, outformat, outformat_arg )
 sub write_domains_to_fh {
@@ -47,7 +49,7 @@ sub write_domains_to_fh {
     my @domains = @{ $domains_ref };
 
     # write output file
-    if ( (not defined $outformat) || ($outformat eq "") ) {
+    if ( (not defined $outformat) || ($outformat eq $EMPTY) ) {
         foreach (@domains) { say $outfh $_; }
 
         return 0;
@@ -55,7 +57,7 @@ sub write_domains_to_fh {
     } elsif ( $outformat eq "unbound" ) {
         my $zone_type;
 
-        if ( (not defined $outformat_arg) or ($outformat_arg eq "") ) {
+        if ( (not defined $outformat_arg) or ($outformat_arg eq $EMPTY) ) {
             $zone_type = "always_nxdomain";
         } else {
             $zone_type = $outformat_arg;
@@ -68,7 +70,7 @@ sub write_domains_to_fh {
         return 0;
 
     } else {
-        return -1;
+        return 1;
     }
 }
 
@@ -84,8 +86,8 @@ sub main {
     my $outformat       = undef;
     my $outformat_arg   = undef;
 
-    unless (
-        GetOptions (
+    if (
+        ! GetOptions (
             "C|autocollapse=i"  => \$autocol_depth,
             "h|help"            => \$want_help,
             "o|outfile=s"       => \$outfile,
@@ -96,7 +98,7 @@ sub main {
         )
     ) {
         say STDERR "Usage: ", $short_usage;
-        return 64;  # FIXME EX_USAGE
+        return 1;  # FIXME EX_USAGE
     }
 
     # help => exit
@@ -162,7 +164,7 @@ sub new {
     my $self  = {
         # auto collapse depth, may be undef for no autocol
         _acd  => shift,
-        _root => DnsTreeNode->new ( "." )
+        _root => DnsTreeNode->new ( q{.} )
     };
 
     return bless $self, $class;
@@ -185,7 +187,7 @@ sub insert {
     my ( $self, $domain_name ) = @_;
 
     # lowercase -> split on "." -> ignore empty parts
-    my @key_path = grep { '/./' } ( split ( /[.]/x, lc $domain_name ) );
+    my @key_path = grep { '/./' } ( split ( /\./xm, lc $domain_name ) );
 
     # auto-collapse if enabled
     if ( (defined $self->{_acd}) && ($self->{_acd} >= 0) ) {
@@ -207,11 +209,11 @@ sub read_fh {
 
     while (<$fh>) {
         # str_strip()
-        s/^\s+//x;
-        s/\s+$//x;
+        s/^\s+//xm;
+        s/\s+$//xm;
 
         # skip empty and comment lines
-        if ( /^[^#]/x ) {
+        if ( /^[^#]/xm ) {
             $self->insert ( $_ );
         }
     }
@@ -249,8 +251,8 @@ sub get_child_node_name {
 
     my $name = $self->{_name};
 
-    if ( (defined $name) && ($name ne "") && ($name ne ".") ) {
-        return join ( ".", ( $subdomain, $name ) );
+    if ( (defined $name) && ($name ne q{}) && ($name ne q{.}) ) {
+        return join ( q{.}, ( $subdomain, $name ) );
     } else {
         return $subdomain;
     }
