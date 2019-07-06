@@ -16,8 +16,8 @@ our $DESC    = "deduplicate domain name lists";
 
 my $prog_name   = basename($0);
 my $short_usage = "${prog_name} {-c <N>|-h|-o <FILE>|-U <ZTYPE>} [<FILE>...]";
-my $usage       = (
-"${NAME} (${VERSION}) - ${DESC}
+my $usage       = <<'EOF';
+${NAME} (${VERSION}) - ${DESC}
 
 Usage:
   ${short_usage}
@@ -38,15 +38,13 @@ Exit Codes:
     0                       success
    64                       usage error
   255                       error
-"
-);
+EOF
 
 
 # write_domains_to_fh ( outfh, domains, outformat, outformat_arg )
 sub write_domains_to_fh {
     my ( $outfh, $domains_ref, $outformat, $outformat_arg ) = @_;
     my @domains = @{ $domains_ref };
-    my $zone_type;
 
     # write output file
     if ( (not defined $outformat) || ($outformat eq "") ) {
@@ -113,9 +111,9 @@ sub main {
 
     if ( scalar @ARGV ) {
         foreach (@ARGV) {
-            open ( my $infh, "<", $_ ) or die "Failed to open input file: $!";
+            open ( my $infh, "<", $_ ) or die "Failed to open input file: $!\n";
             $tree->read_fh ( $infh );
-            close ( $infh ) or warn "Failed to close input file: $!";
+            close ( $infh ) or warn "Failed to close input file: $!\n";
         }
 
     } else {
@@ -128,15 +126,15 @@ sub main {
     if ( defined $outfile ) {
         my $outfh;
 
-        open ( $outfh, ">", $outfile ) or die "Failed to open outfile: $!";
+        open ( $outfh, ">", $outfile ) or die "Failed to open outfile: $!\n";
         $ret = write_domains_to_fh ( $outfh, \@domains, $outformat, $outformat_arg );
-        close ( $outfh ) or warn "Failed to close outfile: $!";
+        close ( $outfh ) or warn "Failed to close outfile: $!\n";
 
     } else {
         $ret = write_domains_to_fh ( *STDOUT, \@domains, $outformat, $outformat_arg );
     }
 
-    if ( $ret ne 0 ) { die "outformat not implemented: ${outformat}"; }
+    if ( $ret != 0 ) { die "outformat not implemented: ${outformat}\n"; }
 
     return 0;
 }
@@ -187,13 +185,13 @@ sub insert {
     my ( $self, $domain_name ) = @_;
 
     # lowercase -> split on "." -> ignore empty parts
-    my @key_path = grep { /./ } ( split ( /[.]/, lc $domain_name ) );
+    my @key_path = grep { '/./' } ( split ( /[.]/x, lc $domain_name ) );
 
     # auto-collapse if enabled
-    if ( (defined $self->{_acd}) && ($self->{_acd} ge 0) ) {
+    if ( (defined $self->{_acd}) && ($self->{_acd} >= 0) ) {
         my $excess = (scalar @key_path) - $self->{_acd};
 
-        if ( $excess gt 0 ) {
+        if ( $excess > 0 ) {
             @key_path = @key_path [ $excess .. $#key_path ];
         }
     }
@@ -209,11 +207,11 @@ sub read_fh {
 
     while (<$fh>) {
         # str_strip()
-        s/^\s+//;
-        s/\s+$//;
+        s/^\s+//x;
+        s/\s+$//x;
 
         # skip empty and comment lines
-        if ( /^[^#]/ ) {
+        if ( /^[^#]/x ) {
             $self->insert ( $_ );
         }
     }
