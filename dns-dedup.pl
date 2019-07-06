@@ -43,7 +43,7 @@ Exit Codes:
 
 
 # main ( **@ARGV )
-sub main() {
+sub main {
     # parse args
     my $autocol_depth   = undef;
     my $want_help       = 0;
@@ -149,7 +149,7 @@ use strict;
 use warnings;
 
 
-sub new($) {
+sub new {
     my $class = shift;
     my $self  = {
         # auto collapse depth, may be undef for no autocol
@@ -162,7 +162,7 @@ sub new($) {
 
 
 # collect ( self )
-sub collect($) {
+sub collect {
     my $self = shift;
     my @dst_arr = ();
 
@@ -173,7 +173,7 @@ sub collect($) {
 
 
 # insert ( self, domain_name )
-sub insert($$) {
+sub insert {
     my ( $self, $domain_name ) = @_;
 
     # lowercase -> split on "." -> ignore empty parts
@@ -194,7 +194,7 @@ sub insert($$) {
 
 
 # read_fh ( self, fh )
-sub read_fh($$) {
+sub read_fh {
     my ( $self, $fh ) = @_;
 
     while (<$fh>) {
@@ -221,7 +221,7 @@ use strict;
 use warnings;
 
 
-sub new($$) {
+sub new {
     my $class = shift;
     my $self  = {
         _name  => shift,  # may be undef
@@ -234,7 +234,7 @@ sub new($$) {
 
 
 # get_child_node_name ( self, subdomain )
-sub get_child_node_name($$) {
+sub get_child_node_name {
     my ( $self, $subdomain ) = @_;
 
     my $name = $self->{_name};
@@ -248,7 +248,7 @@ sub get_child_node_name($$) {
 
 
 # get_child_node ( subdomain )
-sub get_child_node($$) {
+sub get_child_node {
     my ( $self, $subdomain ) = @_;
 
     my $nodes = $self->{_nodes};
@@ -267,7 +267,7 @@ sub get_child_node($$) {
 
 
 # insert ( self, key_path )
-sub insert($$$) {
+sub insert {
     my ( $self, $key_path ) = @_;
 
     my $node_key = pop @{ $key_path };
@@ -287,7 +287,7 @@ sub insert($$$) {
 
 
 # collect ( self, dst_arr )
-sub collect($$) {
+sub collect {
     my ( $self, $dst_arr ) = @_;
 
     if ( $self->{_hot} ) {
