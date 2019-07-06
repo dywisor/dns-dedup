@@ -42,8 +42,43 @@ Exit Codes:
 );
 
 
+# write_domains_to_fh ( outfh, domains, outformat, outformat_arg )
+sub write_domains_to_fh {
+    my ( $outfh, $domains_ref, $outformat, $outformat_arg ) = @_;
+    my @domains = @{ $domains_ref };
+    my $zone_type;
+
+    # write output file
+    if ( (not defined $outformat) || ($outformat eq "") ) {
+        foreach (@domains) { say $outfh $_; }
+
+        return 0;
+
+    } elsif ( $outformat eq "unbound" ) {
+        my $zone_type;
+
+        if ( (not defined $outformat_arg) or ($outformat_arg eq "") ) {
+            $zone_type = "always_nxdomain";
+        } else {
+            $zone_type = $outformat_arg;
+        }
+
+        foreach (@domains) {
+            printf $outfh "local-zone: \"%s.\" %s\n", $_, $zone_type
+        }
+
+        return 0;
+
+    } else {
+        return -1;
+    }
+}
+
+
 # main ( **@ARGV )
 sub main {
+    my $ret;
+
     # parse args
     my $autocol_depth   = undef;
     my $want_help       = 0;
@@ -74,7 +109,7 @@ sub main {
     }
 
     # create DNS tree, read input files
-    my $tree = new DnsTree ( $autocol_depth );
+    my $tree = DnsTree->new ( $autocol_depth );
 
     if ( scalar @ARGV ) {
         foreach (@ARGV) {
@@ -89,45 +124,20 @@ sub main {
 
     my @domains = @{ $tree->collect() };
 
-    # open output file
-    my $outfh;
-    my $close_outfh;
-
-    if ( defined $outfile ) {
-        open ( $outfh, ">", $outfile ) or die "Failed to open outfile: $!";
-        $close_outfh = 1;
-
-    } else {
-        $outfh = *STDOUT;
-    }
-
     # write output file
-    if ( (not defined $outformat) || ($outformat eq "") ) {
-        foreach (@domains) { say $outfh $_; }
+    if ( defined $outfile ) {
+        my $outfh;
 
-    } elsif ( $outformat eq "unbound" ) {
-        my $zone_type;
-        if ( (not defined $outformat_arg) or ($outformat_arg eq "") ) {
-            $zone_type = "always_nxdomain";
-        } else {
-            $zone_type = $outformat_arg;
-        }
-
-        foreach (@domains) {
-            printf $outfh "local-zone: \"%s.\" %s\n", $_, $zone_type
-        }
+        open ( $outfh, ">", $outfile ) or die "Failed to open outfile: $!";
+        $ret = write_domains_to_fh ( $outfh, \@domains, $outformat, $outformat_arg );
+        close ( $outfh ) or warn "Failed to close outfile: $!";
 
     } else {
-        if ( $close_outfh ) {
-            close ( $outfh ) or warn "Failed to close outfile: $!";
-        }
-        die "outformat not implemented: ${outformat}";
+        $ret = write_domains_to_fh ( *STDOUT, \@domains, $outformat, $outformat_arg );
     }
 
-    # cleanup && return ok
-    if ( $close_outfh ) {
-        close ( $outfh ) or warn "Failed to close outfile: $!";
-    }
+    if ( $ret ne 0 ) { die "outformat not implemented: ${outformat}"; }
+
     return 0;
 }
 
@@ -154,7 +164,7 @@ sub new {
     my $self  = {
         # auto collapse depth, may be undef for no autocol
         _acd  => shift,
-        _root => new DnsTreeNode ( "." )
+        _root => DnsTreeNode->new ( "." )
     };
 
     return bless $self, $class;
@@ -177,7 +187,7 @@ sub insert {
     my ( $self, $domain_name ) = @_;
 
     # lowercase -> split on "." -> ignore empty parts
-    my @key_path = grep ( /./, ( split ( /[.]/, lc $domain_name ) ) );
+    my @key_path = grep { /./ } ( split ( /[.]/, lc $domain_name ) );
 
     # auto-collapse if enabled
     if ( (defined $self->{_acd}) && ($self->{_acd} ge 0) ) {
@@ -207,6 +217,8 @@ sub read_fh {
             $self->insert ( $_ );
         }
     }
+
+    return 0;
 }
 
 
@@ -258,7 +270,7 @@ sub get_child_node {
         $node = $nodes->{$subdomain};
 
     } else {
-        $node = new DnsTreeNode ( $self->get_child_node_name ( $subdomain ) );
+        $node = DnsTreeNode->new ( $self->get_child_node_name ( $subdomain ) );
         $nodes->{$subdomain} = $node;
     }
 
@@ -299,4 +311,6 @@ sub collect {
             $self->{_nodes}->{$key}->collect ( $dst_arr );
         }
     }
+
+    return 0;
 }
