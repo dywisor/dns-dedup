@@ -16,7 +16,7 @@ our $DESC    = q{deduplicate domain name lists};
 
 my $prog_name   = basename($0);
 my $short_usage = qq{${prog_name} {-c <N>|-h|-o <FILE>|-U <ZTYPE>} [<FILE>...]};
-my $usage       = <<'EOF';
+my $usage       = <<"EOF";
 ${NAME} (${VERSION}) - ${DESC}
 
 Usage:
